@@ -43,7 +43,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 		String token = authHeader.substring(7);
 
 		if (!jwtService.validateToken(token)) {
-			logger.info("JWT token is invalid/expired. requestURI={}", request.getRequestURI());
+			logger.debug("JWT token is invalid/expired. requestURI={}", request.getRequestURI());
 			filterChain.doFilter(request, response);
 			return;
 		}

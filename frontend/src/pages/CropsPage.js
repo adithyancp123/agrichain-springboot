@@ -3,6 +3,7 @@ import axiosClient from "../axiosClient";
 
 export default function CropsPage() {
   const [crops, setCrops] = useState([]);
+  const [fields, setFields] = useState([]);
   const [fieldsById, setFieldsById] = useState({});
   const [name, setName] = useState("");
   const [type, setType] = useState("");
@@ -13,6 +14,7 @@ export default function CropsPage() {
   const fetchFields = async () => {
     const res = await axiosClient.get("/fields");
     const fields = res.data?.data ?? [];
+    setFields(fields);
 
     const map = {};
     fields.forEach((f) => {
@@ -34,7 +36,6 @@ export default function CropsPage() {
       try {
         await Promise.all([fetchFields(), fetchCrops()]);
       } catch (err) {
-        console.error("Failed to load crops/fields:", err);
         const message =
           err?.response?.data?.message ||
           err?.response?.data?.error?.message ||
@@ -52,13 +53,20 @@ export default function CropsPage() {
 
   const createCrop = async () => {
     setError("");
+    const parsedFieldId = Number(fieldId);
+
+    if (!name.trim() || !type.trim() || !Number.isInteger(parsedFieldId) || parsedFieldId <= 0) {
+      setError("Please enter crop name, type, and select a valid field.");
+      return;
+    }
+
     try {
       await axiosClient.post(
         "/crops",
         {
           name,
           type,
-          fieldId: Number(fieldId),
+          fieldId: parsedFieldId,
         },
         {}
       );
@@ -73,7 +81,6 @@ export default function CropsPage() {
       await fetchCrops();
       setLoading(false);
     } catch (err) {
-      console.error("Failed to create crop:", err);
       const message =
         err?.response?.data?.message ||
         err?.message ||
@@ -91,14 +98,24 @@ export default function CropsPage() {
       <div className="formRow" style={{ gridTemplateColumns: "1fr 1fr 1fr auto" }}>
         <input className="input" placeholder="Crop Name" value={name} onChange={(e) => setName(e.target.value)} />
         <input className="input" placeholder="Type" value={type} onChange={(e) => setType(e.target.value)} />
-        <input
+        <select
           className="input"
-          placeholder="Field ID"
           value={fieldId}
           onChange={(e) => setFieldId(e.target.value)}
-        />
+        >
+          <option value="">Select Field</option>
+          {fields.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+            </option>
+          ))}
+        </select>
 
-        <button className="btn" onClick={createCrop}>
+        <button
+          className="btn"
+          onClick={createCrop}
+          disabled={!name.trim() || !type.trim() || !fieldId}
+        >
           Add Crop
         </button>
       </div>

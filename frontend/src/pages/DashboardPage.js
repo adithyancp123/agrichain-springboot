@@ -35,7 +35,6 @@ export default function DashboardPage() {
       setFarmers(farmersList);
       setCrops(cropsList);
     } catch (err) {
-      console.error("Failed to load dashboard counts:", err);
       const message =
         err?.response?.data?.message ||
         err?.response?.data?.error?.message ||

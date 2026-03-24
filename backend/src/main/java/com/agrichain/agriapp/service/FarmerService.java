@@ -29,9 +29,6 @@ public class FarmerService {
 			return null;
 		}
 
-		logger.info("Creating Farmer: name='{}', region='{}', experienceYears={}",
-				farmer.getName(), farmer.getRegion(), farmer.getExperienceYears());
-
 		Farmer created = new Farmer();
 		created.setId(nextId++);
 		copyInto(created, farmer);
@@ -67,9 +64,6 @@ public class FarmerService {
 		if (existing == null) {
 			return null;
 		}
-
-		logger.info("Updating Farmer id={} -> name='{}', region='{}', experienceYears={}",
-				id, farmer.getName(), farmer.getRegion(), farmer.getExperienceYears());
 
 		copyInto(existing, farmer);
 		logger.info("Farmer updated successfully with id={}", id);
@@ -108,7 +102,7 @@ public class FarmerService {
 
 		// Cascade delete: Farmer -> Fields -> (Crop, IrrigationSchedule)
 		List<Field> fieldsToDelete = fieldService.getByFarmerId(id);
-		logger.info("Farmer id={} has {} field(s) to cascade delete", id, fieldsToDelete.size());
+		logger.info("Cascade delete: farmerId={}, fieldsToDelete={}", id, fieldsToDelete.size());
 		for (Field field : fieldsToDelete) {
 			fieldService.delete(field.getId());
 		}

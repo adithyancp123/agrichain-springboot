@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { Navigate, useNavigate } from "react-router-dom";
+import axiosClient from "../axiosClient";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -21,10 +21,22 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await axios.post("http://localhost:8080/auth/login", {
-        username,
-        password,
-      });
+      const payload = { username, password };
+      // Debug log (development only): confirms payload shape sent to backend.
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.info("Login request payload:", {
+          username: payload.username,
+          password: "*".repeat(payload.password?.length ?? 0),
+        });
+      }
+
+      const res = await axiosClient.post("/auth/login", payload);
+
+      if (process.env.NODE_ENV !== "production") {
+        // eslint-disable-next-line no-console
+        console.info("Login response status:", res.status);
+      }
 
       const token = res.data?.data;
       if (!token) {
@@ -34,7 +46,6 @@ export default function LoginPage() {
       localStorage.setItem("token", token);
       navigate("/dashboard", { replace: true });
     } catch (err) {
-      console.error("Login failed:", err);
       const message =
         err?.response?.data?.message ||
         err?.response?.data?.error?.message ||

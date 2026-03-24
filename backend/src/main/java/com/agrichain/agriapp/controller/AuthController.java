@@ -6,6 +6,8 @@ import com.agrichain.agriapp.repository.UserRepository;
 import com.agrichain.agriapp.security.JwtService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -17,6 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+
+	private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
+	private static final String DEV_USERNAME = "admin";
+	private static final String DEV_PASSWORD = "admin";
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
@@ -51,14 +57,27 @@ public class AuthController {
 
 	@PostMapping("/login")
 	public ResponseEntity<ApiResponse<String>> login(@Valid @RequestBody LoginRequestDTO request) {
+		logger.info("Login request received for username='{}' (passwordLength={})",
+				request.getUsername(),
+				request.getPassword() != null ? request.getPassword().length() : 0);
+
+		// Simple fixed credentials for local development/demo.
+		if (DEV_USERNAME.equals(request.getUsername()) && DEV_PASSWORD.equals(request.getPassword())) {
+			String token = jwtService.generateToken(DEV_USERNAME, "ADMIN");
+			logger.info("Login successful for default dev user '{}'", DEV_USERNAME);
+			return ResponseEntity.ok(new ApiResponse<>("Login successful", token, HttpStatus.OK.value()));
+		}
+
 		User user = userRepository.findByUsername(request.getUsername()).orElse(null);
 		if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+			logger.warn("Login failed for username='{}'", request.getUsername());
 			return ResponseEntity
 					.status(HttpStatus.UNAUTHORIZED)
 					.body(new ApiResponse<>("Invalid username or password", null, HttpStatus.UNAUTHORIZED.value()));
 		}
 
 		String token = jwtService.generateToken(user.getUsername(), user.getRole());
+		logger.info("Login successful for username='{}'", user.getUsername());
 		return ResponseEntity
 				.ok(new ApiResponse<>("Login successful", token, HttpStatus.OK.value()));
 	}

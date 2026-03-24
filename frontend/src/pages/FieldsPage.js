@@ -3,6 +3,7 @@ import axiosClient from "../axiosClient";
 
 export default function FieldsPage() {
   const [fields, setFields] = useState([]);
+  const [farmers, setFarmers] = useState([]);
   const [farmersById, setFarmersById] = useState({});
   const [fieldName, setFieldName] = useState("");
   const [area, setArea] = useState("");
@@ -13,6 +14,7 @@ export default function FieldsPage() {
   const fetchFarmers = async () => {
     const res = await axiosClient.get("/farmers");
     const farmers = res.data?.data ?? [];
+    setFarmers(farmers);
 
     const map = {};
     farmers.forEach((f) => {
@@ -35,7 +37,6 @@ export default function FieldsPage() {
       try {
         await Promise.all([fetchFarmers(), fetchFields()]);
       } catch (err) {
-        console.error("Failed to load fields/farmers:", err);
         const message =
           err?.response?.data?.message ||
           err?.response?.data?.error?.message ||
@@ -53,13 +54,29 @@ export default function FieldsPage() {
 
   const createField = async () => {
     setError("");
+    const parsedArea = Number(area);
+    const parsedFarmerId = Number(farmerId);
+
+    if (!fieldName.trim()) {
+      setError("Field name is required.");
+      return;
+    }
+    if (!Number.isFinite(parsedArea) || parsedArea < 0) {
+      setError("Area must be a valid non-negative number.");
+      return;
+    }
+    if (!Number.isInteger(parsedFarmerId) || parsedFarmerId <= 0) {
+      setError("Please select a valid farmer.");
+      return;
+    }
+
     try {
       await axiosClient.post(
         "/fields",
         {
           name: fieldName,
-          area: Number(area),
-          farmerId: Number(farmerId),
+          area: parsedArea,
+          farmerId: parsedFarmerId,
         },
         {}
       );
@@ -74,7 +91,6 @@ export default function FieldsPage() {
       await fetchFields();
       setLoading(false);
     } catch (err) {
-      console.error("Failed to create field:", err);
       const message =
         err?.response?.data?.message ||
         err?.response?.data?.error?.message ||
@@ -96,17 +112,44 @@ export default function FieldsPage() {
             className="input"
             placeholder="Field Name"
             value={fieldName}
-            onChange={(e) => setFieldName(e.target.value)}
+            onChange={(e) => {
+              setError("");
+              setFieldName(e.target.value);
+            }}
           />
-          <input className="input" placeholder="Area" value={area} onChange={(e) => setArea(e.target.value)} />
           <input
             className="input"
-            placeholder="Farmer ID"
-            value={farmerId}
-            onChange={(e) => setFarmerId(e.target.value)}
+            type="number"
+            min="0"
+            step="0.1"
+            placeholder="Area"
+            value={area}
+            onChange={(e) => {
+              setError("");
+              setArea(e.target.value);
+            }}
           />
+          <select
+            className="input"
+            value={farmerId}
+            onChange={(e) => {
+              setError("");
+              setFarmerId(e.target.value);
+            }}
+          >
+            <option value="">Select Farmer</option>
+            {farmers.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
 
-          <button className="btn" onClick={createField}>
+          <button
+            className="btn"
+            onClick={createField}
+            disabled={!fieldName.trim() || !area.trim() || !farmerId}
+          >
             Add Field
           </button>
         </div>

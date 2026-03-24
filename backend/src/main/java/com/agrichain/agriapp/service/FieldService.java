@@ -40,9 +40,6 @@ public class FieldService {
 
 		validateFarmerIdOrThrow(field.getFarmerId());
 
-		logger.info("Creating Field: name='{}', area={}, farmerId={}",
-				field.getName(), field.getArea(), field.getFarmerId());
-
 		Field created = new Field();
 		created.setId(nextId++);
 		copyInto(created, field);
@@ -81,9 +78,6 @@ public class FieldService {
 
 		validateFarmerIdOrThrow(field.getFarmerId());
 
-		logger.info("Updating Field id={} -> name='{}', area={}, farmerId={}",
-				id, field.getName(), field.getArea(), field.getFarmerId());
-
 		copyInto(existing, field);
 		logger.info("Field updated successfully with id={}", id);
 		return existing;
@@ -116,7 +110,7 @@ public class FieldService {
 			return false;
 		}
 
-		logger.info("Deleting Field id={} (cascading to crop and irrigation schedule)", id);
+		logger.info("Deleting Field id={} (cascade enabled)", id);
 
 		// Cascade delete: Field -> (Crop, IrrigationSchedule)
 		boolean deletedCrop = cropService.deleteByFieldId(id);

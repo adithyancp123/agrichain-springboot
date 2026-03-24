@@ -36,9 +36,6 @@ public class DistributorService {
 			return null;
 		}
 
-		logger.info("Creating Distributor: name='{}', contact='{}', interestedCropType='{}'",
-				distributor.getName(), distributor.getContact(), distributor.getInterestedCropType());
-
 		Distributor created = new Distributor();
 		created.setId(nextId++);
 		copyInto(created, distributor);
@@ -74,9 +71,6 @@ public class DistributorService {
 		if (existing == null) {
 			return null;
 		}
-
-		logger.info("Updating Distributor id={} -> name='{}', contact='{}', interestedCropType='{}'",
-				id, distributor.getName(), distributor.getContact(), distributor.getInterestedCropType());
 
 		copyInto(existing, distributor);
 		logger.info("Distributor updated successfully with id={}", id);

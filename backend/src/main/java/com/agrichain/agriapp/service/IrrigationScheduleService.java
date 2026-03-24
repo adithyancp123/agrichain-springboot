@@ -16,22 +16,15 @@ public class IrrigationScheduleService {
     private final List<IrrigationSchedule> schedules = new ArrayList<>();
     private long nextId = 1L;
 
-    // ❌ REMOVED FieldService to avoid circular dependency
-
     public IrrigationSchedule create(IrrigationSchedule schedule) {
         if (schedule == null) {
             return null;
         }
 
-        // ❌ Removed field validation
-
         // Field has one IrrigationSchedule: enforce uniqueness by fieldId
         if (getByFieldId(schedule.getFieldId()) != null) {
             return null;
         }
-
-        logger.info("Creating IrrigationSchedule: date='{}', method='{}', fieldId={}",
-                schedule.getDate(), schedule.getMethod(), schedule.getFieldId());
 
         IrrigationSchedule created = new IrrigationSchedule();
         created.setId(nextId++);
@@ -69,16 +62,11 @@ public class IrrigationScheduleService {
             return null;
         }
 
-        // ❌ Removed field validation
-
         // If changing fieldId, enforce one schedule per field
         IrrigationSchedule otherForField = getByFieldId(schedule.getFieldId());
         if (otherForField != null && !otherForField.getId().equals(id)) {
             return null;
         }
-
-        logger.info("Updating IrrigationSchedule id={} -> date='{}', method='{}', fieldId={}",
-                id, schedule.getDate(), schedule.getMethod(), schedule.getFieldId());
 
         copyInto(existing, schedule);
         logger.info("IrrigationSchedule updated successfully with id={}", id);

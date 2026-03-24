@@ -16,22 +16,10 @@ public class CropService {
     private final List<Crop> crops = new ArrayList<>();
     private long nextId = 1L;
 
-    // ❌ REMOVED FieldService to avoid circular dependency
-
     public Crop create(Crop crop) {
         if (crop == null) {
             return null;
         }
-
-        // ❌ Removed field validation (no FieldService now)
-
-        // Field has one Crop: enforce uniqueness by fieldId
-        if (getByFieldId(crop.getFieldId()) != null) {
-            return null;
-        }
-
-        logger.info("Creating Crop: name='{}', type='{}', fieldId={}",
-                crop.getName(), crop.getType(), crop.getFieldId());
 
         Crop created = new Crop();
         created.setId(nextId++);
@@ -68,17 +56,6 @@ public class CropService {
         if (existing == null) {
             return null;
         }
-
-        // ❌ Removed field validation
-
-        // If changing fieldId, enforce one crop per field
-        Crop otherForField = getByFieldId(crop.getFieldId());
-        if (otherForField != null && !otherForField.getId().equals(id)) {
-            return null;
-        }
-
-        logger.info("Updating Crop id={} -> name='{}', type='{}', fieldId={}",
-                id, crop.getName(), crop.getType(), crop.getFieldId());
 
         copyInto(existing, crop);
         logger.info("Crop updated successfully with id={}", id);

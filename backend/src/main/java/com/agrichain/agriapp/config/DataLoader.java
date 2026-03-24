@@ -3,12 +3,15 @@ package com.agrichain.agriapp.config;
 import com.agrichain.agriapp.model.Crop;
 import com.agrichain.agriapp.model.Farmer;
 import com.agrichain.agriapp.model.Field;
+import com.agrichain.agriapp.model.User;
+import com.agrichain.agriapp.repository.UserRepository;
 import com.agrichain.agriapp.service.CropService;
 import com.agrichain.agriapp.service.FieldService;
 import com.agrichain.agriapp.service.FarmerService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,15 +22,27 @@ public class DataLoader implements CommandLineRunner {
 	private final FarmerService farmerService;
 	private final FieldService fieldService;
 	private final CropService cropService;
+	private final UserRepository userRepository;
+	private final PasswordEncoder passwordEncoder;
 
-	public DataLoader(FarmerService farmerService, FieldService fieldService, CropService cropService) {
+	public DataLoader(
+			FarmerService farmerService,
+			FieldService fieldService,
+			CropService cropService,
+			UserRepository userRepository,
+			PasswordEncoder passwordEncoder
+	) {
 		this.farmerService = farmerService;
 		this.fieldService = fieldService;
 		this.cropService = cropService;
+		this.userRepository = userRepository;
+		this.passwordEncoder = passwordEncoder;
 	}
 
 	@Override
 	public void run(String... args) {
+		seedDefaultAdminUser();
+
 		// Prevent duplicate sample data on hot reload / restarts.
 		if (!farmerService.getAll().isEmpty()) {
 			return;
@@ -79,9 +94,20 @@ public class DataLoader implements CommandLineRunner {
 				farmerService.getAll().size(),
 				fieldService.getAll().size(),
 				cropService.getAll().size());
-		logger.info("Created: farmer1={}, farmer2={}, crop1={}, crop2={}",
-				createdFarmer1.getId(), createdFarmer2.getId(),
-				createdCrop1.getId(), createdCrop2.getId());
+	}
+
+	private void seedDefaultAdminUser() {
+		if (userRepository.findByUsername("admin").isPresent()) {
+			return;
+		}
+
+		User admin = new User();
+		admin.setUsername("admin");
+		admin.setPassword(passwordEncoder.encode("admin"));
+		admin.setRole("ADMIN");
+		userRepository.save(admin);
+
+		logger.info("Default login user created: username='admin'");
 	}
 }
 

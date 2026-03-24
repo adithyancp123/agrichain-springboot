@@ -22,7 +22,6 @@ export default function FarmersPage() {
       const data = await getFarmers();
       setFarmers(data);
     } catch (err) {
-      console.error("Failed to fetch farmers:", err);
       const message =
         err?.response?.data?.message ||
         err?.response?.data?.error?.message ||
@@ -58,6 +57,12 @@ export default function FarmersPage() {
   const createFarmer = async () => {
     // Prevent double submits on fast clicks.
     if (isCreating || loading) return;
+    const parsedExperience = Number(experienceYears);
+
+    if (!Number.isInteger(parsedExperience) || parsedExperience < 0) {
+      setError("Experience must be a valid non-negative number.");
+      return;
+    }
 
     try {
       setError("");
@@ -66,7 +71,7 @@ export default function FarmersPage() {
       await addFarmer({
         name,
         region,
-        experienceYears: Number(experienceYears),
+        experienceYears: parsedExperience,
       });
 
       // Clear inputs after successful POST
@@ -79,7 +84,6 @@ export default function FarmersPage() {
 
       showSuccess("Farmer added successfully.");
     } catch (err) {
-      console.error("Failed to create farmer:", err);
       const message =
         err?.response?.data?.message ||
         err?.message ||
@@ -107,7 +111,6 @@ export default function FarmersPage() {
       setFarmers((prev) => prev.filter((f) => f.id !== id));
       showSuccess("Farmer deleted successfully.");
     } catch (err) {
-      console.error("Failed to delete farmer:", err);
       const message =
         err?.response?.data?.message ||
         err?.message ||
@@ -139,7 +142,9 @@ export default function FarmersPage() {
     deletingId == null &&
     name.trim().length > 0 &&
     region.trim().length > 0 &&
-    experienceYears.trim().length > 0;
+    experienceYears.trim().length > 0 &&
+    Number.isInteger(Number(experienceYears)) &&
+    Number(experienceYears) >= 0;
 
   return (
     <div className="card">
@@ -175,8 +180,14 @@ export default function FarmersPage() {
         <input
           className="input"
           placeholder="Experience"
+          type="number"
+          min="0"
+          step="1"
           value={experienceYears}
-          onChange={(e) => setExperienceYears(e.target.value)}
+          onChange={(e) => {
+            setError("");
+            setExperienceYears(e.target.value);
+          }}
         />
         <button className="btn" onClick={createFarmer} disabled={!canAddFarmer}>
           {isCreating ? "Adding..." : "Add Farmer"}
