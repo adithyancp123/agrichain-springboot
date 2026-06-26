@@ -20,8 +20,13 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import com.agrichain.agriapp.security.JwtAuthenticationFilter;
+import com.agrichain.agriapp.security.JwtService;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.time.Instant;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -61,9 +66,23 @@ public class SecurityConfig {
 	}
 
 	@Bean
+	public CorsConfigurationSource corsConfigurationSource() {
+		CorsConfiguration configuration = new CorsConfiguration();
+		configuration.setAllowedOrigins(List.of("https://agrichain-springboot.vercel.app", "http://localhost:3000", "http://localhost:3001", "http://localhost:5173"));
+		configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+		configuration.setAllowedHeaders(List.of("*"));
+		configuration.setExposedHeaders(List.of("Authorization"));
+		configuration.setAllowCredentials(true);
+
+		UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+		source.registerCorsConfiguration("/**", configuration);
+		return source;
+	}
+
+	@Bean
 	public SecurityFilterChain securityFilterChain(
 			HttpSecurity http,
-			JwtAuthenticationFilter jwtAuthenticationFilter,
+			JwtService jwtService,
 			AuthenticationEntryPoint authenticationEntryPoint
 	) throws Exception {
 		http
@@ -78,7 +97,7 @@ public class SecurityConfig {
 				.exceptionHandling(ex -> ex.authenticationEntryPoint(authenticationEntryPoint))
 				.httpBasic(AbstractHttpConfigurer::disable)
 				.formLogin(AbstractHttpConfigurer::disable)
-				.addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+				.addFilterBefore(new JwtAuthenticationFilter(jwtService), UsernamePasswordAuthenticationFilter.class);
 
 		return http.build();
 	}

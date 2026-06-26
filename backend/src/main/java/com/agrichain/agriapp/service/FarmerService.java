@@ -2,6 +2,7 @@ package com.agrichain.agriapp.service;
 
 import com.agrichain.agriapp.model.Farmer;
 import com.agrichain.agriapp.model.Field;
+import com.agrichain.agriapp.repository.FarmerRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -15,12 +16,11 @@ public class FarmerService {
 
 	private static final Logger logger = LoggerFactory.getLogger(FarmerService.class);
 
-	private final List<Farmer> farmers = new ArrayList<>();
-	private long nextId = 1L;
-
+	private final FarmerRepository farmerRepository;
 	private final FieldService fieldService;
 
-	public FarmerService(@Lazy FieldService fieldService) {
+	public FarmerService(FarmerRepository farmerRepository, @Lazy FieldService fieldService) {
+		this.farmerRepository = farmerRepository;
 		this.fieldService = fieldService;
 	}
 
@@ -29,17 +29,13 @@ public class FarmerService {
 			return null;
 		}
 
-		Farmer created = new Farmer();
-		created.setId(nextId++);
-		copyInto(created, farmer);
-
-		farmers.add(created);
-		logger.info("Farmer created successfully with id={}", created.getId());
-		return created;
+		Farmer saved = farmerRepository.save(farmer);
+		logger.info("Farmer created successfully with id={}", saved.getId());
+		return saved;
 	}
 
 	public List<Farmer> getAll() {
-		return new ArrayList<>(farmers);
+		return farmerRepository.findAll();
 	}
 
 	public Farmer getById(Long id) {
@@ -47,12 +43,7 @@ public class FarmerService {
 			return null;
 		}
 
-		for (Farmer farmer : farmers) {
-			if (id.equals(farmer.getId())) {
-				return farmer;
-			}
-		}
-		return null;
+		return farmerRepository.findById(id).orElse(null);
 	}
 
 	public Farmer update(Long id, Farmer farmer) {
@@ -66,8 +57,9 @@ public class FarmerService {
 		}
 
 		copyInto(existing, farmer);
+		Farmer saved = farmerRepository.save(existing);
 		logger.info("Farmer updated successfully with id={}", id);
-		return existing;
+		return saved;
 	}
 
 	public List<Field> getFieldsByFarmerId(Long farmerId) {
@@ -79,13 +71,7 @@ public class FarmerService {
 			return new ArrayList<>();
 		}
 
-		List<Farmer> result = new ArrayList<>();
-		for (Farmer farmer : farmers) {
-			if (farmer.getRegion() != null && farmer.getRegion().equalsIgnoreCase(region)) {
-				result.add(farmer);
-			}
-		}
-		return result;
+		return farmerRepository.findByRegionIgnoreCase(region);
 	}
 
 	public boolean delete(Long id) {
@@ -107,11 +93,9 @@ public class FarmerService {
 			fieldService.delete(field.getId());
 		}
 
-		boolean removed = farmers.removeIf(farmer -> id.equals(farmer.getId()));
-		if (removed) {
-			logger.info("Farmer deleted successfully with id={}", id);
-		}
-		return removed;
+		farmerRepository.delete(existing);
+		logger.info("Farmer deleted successfully with id={}", id);
+		return true;
 	}
 
 	private void copyInto(Farmer target, Farmer source) {
@@ -120,4 +104,3 @@ public class FarmerService {
 		target.setExperienceYears(source.getExperienceYears());
 	}
 }
-

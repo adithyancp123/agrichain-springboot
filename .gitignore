@@ -1,4 +1,5 @@
 # Backend
+/target/
 /backend/target/
 /backend/logs/
 /backend/node_modules/

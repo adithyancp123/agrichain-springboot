@@ -60,6 +60,7 @@ export default function CropsPage() {
       return;
     }
 
+    setLoading(true);
     try {
       await axiosClient.post(
         "/crops",
@@ -77,15 +78,15 @@ export default function CropsPage() {
       setFieldId("");
 
       // Refresh list without reloading
-      setLoading(true);
       await fetchCrops();
-      setLoading(false);
     } catch (err) {
       const message =
         err?.response?.data?.message ||
         err?.message ||
         "Failed to create crop";
       setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 

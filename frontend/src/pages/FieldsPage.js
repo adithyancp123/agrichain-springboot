@@ -70,6 +70,7 @@ export default function FieldsPage() {
       return;
     }
 
+    setLoading(true);
     try {
       await axiosClient.post(
         "/fields",
@@ -87,9 +88,7 @@ export default function FieldsPage() {
       setFarmerId("");
 
       // Refresh list without reloading the page
-      setLoading(true);
       await fetchFields();
-      setLoading(false);
     } catch (err) {
       const message =
         err?.response?.data?.message ||
@@ -97,6 +96,8 @@ export default function FieldsPage() {
         err?.message ||
         "Failed to create field";
       setError(message);
+    } finally {
+      setLoading(false);
     }
   };
 
