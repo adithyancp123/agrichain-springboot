@@ -10,28 +10,40 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
 	private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
-	private static final String DEV_USERNAME = "admin";
-	private static final String DEV_PASSWORD = "admin";
 
 	private final UserRepository userRepository;
 	private final PasswordEncoder passwordEncoder;
 	private final JwtService jwtService;
+	private final AuthenticationManager authenticationManager;
 
-	public AuthController(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtService jwtService) {
+	public AuthController(
+			UserRepository userRepository,
+			PasswordEncoder passwordEncoder,
+			JwtService jwtService,
+			AuthenticationManager authenticationManager
+	) {
 		this.userRepository = userRepository;
 		this.passwordEncoder = passwordEncoder;
 		this.jwtService = jwtService;
+		this.authenticationManager = authenticationManager;
 	}
 
 	@PostMapping("/register")
@@ -56,30 +68,37 @@ public class AuthController {
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<ApiResponse<String>> login(@Valid @RequestBody LoginRequestDTO request) {
-		logger.info("Login request received for username='{}' (passwordLength={})",
-				request.getUsername(),
-				request.getPassword() != null ? request.getPassword().length() : 0);
+	public ResponseEntity<Map<String, Object>> login(@Valid @RequestBody LoginRequestDTO request) {
+		logger.info("Login request received for username='{}'", request.getUsername());
 
-		// Simple fixed credentials for local development/demo.
-		if (DEV_USERNAME.equals(request.getUsername()) && DEV_PASSWORD.equals(request.getPassword())) {
-			String token = jwtService.generateToken(DEV_USERNAME, "ADMIN");
-			logger.info("Login successful for default dev user '{}'", DEV_USERNAME);
-			return ResponseEntity.ok(new ApiResponse<>("Login successful", token, HttpStatus.OK.value()));
-		}
+		try {
+			Authentication authentication = authenticationManager.authenticate(
+					new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+			);
 
-		User user = userRepository.findByUsername(request.getUsername()).orElse(null);
-		if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-			logger.warn("Login failed for username='{}'", request.getUsername());
+			String username = authentication.getName();
+			String role = authentication.getAuthorities().stream()
+					.map(GrantedAuthority::getAuthority)
+					.map(r -> r.startsWith("ROLE_") ? r.substring(5) : r)
+					.findFirst()
+					.orElse("USER");
+
+			String token = jwtService.generateToken(username, role);
+			logger.info("Login successful for username='{}'", username);
+
+			return ResponseEntity.ok(Map.of(
+					"success", true,
+					"data", token
+			));
+		} catch (AuthenticationException e) {
+			logger.warn("Login failed for username='{}': {}", request.getUsername(), e.getMessage());
 			return ResponseEntity
 					.status(HttpStatus.UNAUTHORIZED)
-					.body(new ApiResponse<>("Invalid username or password", null, HttpStatus.UNAUTHORIZED.value()));
+					.body(Map.of(
+							"success", false,
+							"message", "Invalid username or password"
+					));
 		}
-
-		String token = jwtService.generateToken(user.getUsername(), user.getRole());
-		logger.info("Login successful for username='{}'", user.getUsername());
-		return ResponseEntity
-				.ok(new ApiResponse<>("Login successful", token, HttpStatus.OK.value()));
 	}
 
 	public static class RegisterRequestDTO {
